@@ -1,0 +1,341 @@
+openapi: 3.0.0
+info:
+  title: 外卖配送信息系统 API
+  description: Food Delivery Information System — API 契约。前后端并行开发的接口约定。
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api
+    description: 本地开发服务器
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        msg:
+          type: string
+          example: success
+        data:
+          type: object
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags: [认证]
+      summary: 注册
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password, role]
+              properties:
+                username: { type: string, example: xiaoming }
+                password: { type: string, example: "123456" }
+                role: { type: string, example: customer, description: "customer/rider/merchant/analyst/regulator" }
+                phone: { type: string, example: "13800001111" }
+                email: { type: string, example: a@b.com }
+      responses:
+        '200':
+          description: 注册成功
+          content:
+            application/json:
+              example: { code: 0, msg: 注册成功, data: { user_id: 12 } }
+
+  /auth/login:
+    post:
+      tags: [认证]
+      summary: 登录
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string, example: xiaoming }
+                password: { type: string, example: "123456" }
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              example: { code: 0, msg: 登录成功, data: { token: "eyJhbGci...", user_id: 12, role: customer, nickname: 小明, two_factor_required: false } }
+
+  /auth/2fa/verify:
+    post:
+      tags: [认证]
+      summary: 两步验证
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, code]
+              properties:
+                user_id: { type: integer, example: 12 }
+                code: { type: string, example: "123456" }
+      responses:
+        '200':
+          description: 验证成功
+          content:
+            application/json:
+              example: { code: 0, msg: 登录成功, data: { token: "eyJhbGci...", user_id: 12, role: customer } }
+
+  /auth/recover:
+    post:
+      tags: [认证]
+      summary: 密码找回
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, example: a@b.com }
+                phone: { type: string, example: "13800001111" }
+      responses:
+        '200':
+          description: 已发送
+          content:
+            application/json:
+              example: { code: 0, msg: "重置链接已发送(mock)", data: null }
+
+  /auth/wechat:
+    post:
+      tags: [认证]
+      summary: 微信登录
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wechat_code]
+              properties:
+                wechat_code: { type: string, example: "mock_code_abc" }
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              example: { code: 0, msg: 登录成功, data: { token: "eyJhbGci...", user_id: 12, role: customer } }
+
+  /menu:
+    get:
+      tags: [核心业务]
+      summary: 获取菜单列表
+      parameters:
+        - { name: merchant_id, in: query, schema: { type: integer }, description: 只看某商家 }
+        - { name: category, in: query, schema: { type: string }, description: 按品类筛选 }
+      responses:
+        '200':
+          description: 菜单列表
+          content:
+            application/json:
+              example: { code: 0, msg: success, data: [ { id: 3, name: 黄焖鸡米饭, price: 22.00, category: 正餐, image_path: "uploads/menu/3.jpg", merchant_id: 5 } ] }
+
+  /orders:
+    post:
+      tags: [核心业务]
+      summary: 创建订单（顾客下单）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [merchant_id, items, delivery_address]
+              properties:
+                merchant_id: { type: integer, example: 5 }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      menu_item_id: { type: integer, example: 3 }
+                      quantity: { type: integer, example: 2 }
+                delivery_address: { type: string, example: "XX 大学 3 号宿舍楼" }
+                dest_lat: { type: number, example: 31.2304 }
+                dest_lng: { type: number, example: 121.4737 }
+                remark: { type: string, example: 不要辣 }
+      responses:
+        '200':
+          description: 下单成功
+          content:
+            application/json:
+              example: { code: 0, msg: 下单成功, data: { order_id: 1001, total_amount: 56.00, status: pending } }
+    get:
+      tags: [核心业务]
+      summary: 查询订单列表
+      parameters:
+        - { name: status, in: query, schema: { type: string }, description: 按状态筛选 }
+      responses:
+        '200':
+          description: 订单列表
+          content:
+            application/json:
+              example: { code: 0, msg: success, data: [ { id: 1001, status: pending, total_amount: 56.00, delivery_address: "XX 大学 3 号宿舍楼", created_at: "2026-06-08T17:30:00", items: [ { name: 黄焖鸡米饭, quantity: 2, unit_price: 22.00 } ] } ] }
+
+  /orders/{order_id}:
+    get:
+      tags: [核心业务]
+      summary: 查询单个订单详情
+      parameters:
+        - { name: order_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          description: 订单详情
+          content:
+            application/json:
+              example: { code: 0, msg: success, data: { id: 1001, status: delivering, rider_id: 8, merchant_id: 5, total_amount: 56.00 } }
+
+  /orders/{order_id}/accept:
+    put:
+      tags: [核心业务]
+      summary: 骑手接单
+      parameters:
+        - { name: order_id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          description: 接单成功
+          content:
+            application/json:
+              example: { code: 0, msg: 接单成功, data: { order_id: 1001, status: delivering, rider_id: 8 } }
+
+  /orders/{order_id}/status:
+    put:
+      tags: [核心业务]
+      summary: 更新订单状态
+      parameters:
+        - { name: order_id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, example: completed, description: "accepted/preparing/delivering/completed/cancelled" }
+      responses:
+        '200':
+          description: 状态已更新
+          content:
+            application/json:
+              example: { code: 0, msg: 状态已更新, data: { order_id: 1001, status: completed } }
+
+  /upload:
+    post:
+      tags: [硬件与文件]
+      summary: 上传配送文件（照片/语音）
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, order_id, file_type]
+              properties:
+                file: { type: string, format: binary }
+                order_id: { type: integer, example: 1001 }
+                file_type: { type: string, example: photo, description: "photo(相机)/audio(麦克风)" }
+      responses:
+        '200':
+          description: 上传成功
+          content:
+            application/json:
+              example: { code: 0, msg: 上传成功, data: { id: 33, file_path: "uploads/2026/order_1001_done.jpg", file_type: photo } }
+
+  /analytics/sales:
+    get:
+      tags: [Web管理端]
+      summary: 多维销量分析
+      parameters:
+        - { name: dimension, in: query, required: true, schema: { type: string }, description: "time/region/category" }
+        - { name: start_date, in: query, schema: { type: string }, example: "2026-06-01" }
+        - { name: end_date, in: query, schema: { type: string }, example: "2026-06-08" }
+      responses:
+        '200':
+          description: 分析结果
+          content:
+            application/json:
+              example: { code: 0, msg: success, data: { dimension: category, labels: [正餐, 饮品, 小吃], values: [320, 210, 150] } }
+
+  /risk-zones:
+    get:
+      tags: [Web管理端]
+      summary: 危险路段列表
+      responses:
+        '200':
+          description: 路段列表
+          content:
+            application/json:
+              example: { code: 0, msg: success, data: [ { id: 1, name: "XX 路急转弯", center_lat: 31.230, center_lng: 121.474, radius_m: 150, risk_level: 3, description: 夜间照明差 } ] }
+    post:
+      tags: [Web管理端]
+      summary: 新增危险路段（监管维护）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, center_lat, center_lng]
+              properties:
+                name: { type: string, example: "XX 路急转弯" }
+                center_lat: { type: number, example: 31.230 }
+                center_lng: { type: number, example: 121.474 }
+                radius_m: { type: integer, example: 150 }
+                risk_level: { type: integer, example: 3 }
+                description: { type: string, example: 夜间照明差 }
+      responses:
+        '200':
+          description: 已添加
+          content:
+            application/json:
+              example: { code: 0, msg: 已添加, data: { id: 2 } }
+
+  /ai/recommend:
+    get:
+      tags: [AI]
+      summary: 菜品推荐
+      responses:
+        '200':
+          description: 推荐结果
+          content:
+            application/json:
+              example: { code: 0, msg: success, data: { algorithm: collaborative, items: [ { id: 3, name: 黄焖鸡米饭, reason: "和你常点的菜常被一起购买" } ] } }
+
+  /ai/forecast:
+    get:
+      tags: [AI]
+      summary: 销量预测
+      parameters:
+        - { name: days, in: query, schema: { type: integer }, example: 7 }
+      responses:
+        '200':
+          description: 预测结果
+          content:
+            application/json:
+              example: { code: 0, msg: success, data: { history: [ { date: "2026-06-01", sales: 120 } ], forecast: [ { date: "2026-06-09", sales: 135 } ] } }
