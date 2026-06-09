@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+pymysql[rsa]
+bcrypt
+python-jose[cryptography]
+python-multipart
