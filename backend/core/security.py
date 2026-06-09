@@ -21,7 +21,7 @@ ALGORITHM = "HS256"
 TOKEN_EXPIRE_MINUTES = 60 * 24  # 令牌有效期：24 小时
 
 # 告诉 FastAPI：token 从哪个接口获取（用于 /docs 上的 Authorize 按钮）
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/token")
 
 
 # ============ 密码加密 ============

@@ -3,7 +3,10 @@ main.py — FastAPI 后端入口
 
 已接入的模块：
   - 健康检查 / 数据库检查（骨架自带）
-  - 认证模块 routers/auth.py（注册、登录）
+  - 认证模块   routers/auth.py    （注册、登录、OAuth2 token）
+  - 菜单模块   routers/menu.py    （菜单查询）
+  - 订单模块   routers/orders.py  （下单、查询、接单、更新状态）
+  - 上传模块   routers/upload.py  （配送照片/语音，非结构化存储）
 
 运行方式（在 backend 目录、已激活 venv 的前提下）：
   uvicorn main:app --reload
@@ -13,11 +16,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import get_connection
-from routers import auth
+from routers import auth, menu, orders, upload
 
-app = FastAPI(title="外卖配送信息系统 API", version="0.2.0")
+app = FastAPI(title="外卖配送信息系统 API", version="0.4.0")
 
-# 允许前端跨域访问（开发阶段放开，方便移动端/Web 端联调）
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,6 +30,9 @@ app.add_middleware(
 
 # 注册各业务模块的路由
 app.include_router(auth.router)
+app.include_router(menu.router)
+app.include_router(orders.router)
+app.include_router(upload.router)
 
 
 @app.get("/api/health")
